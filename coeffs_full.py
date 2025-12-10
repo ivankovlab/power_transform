@@ -5,7 +5,7 @@ import sys
 
 # this script is for full-landscape computations only. do not use it for hypercube-wise.
 
-np.printoptions(threshold=sys.maxsize,linewidth=np.inf)
+np.printoptions(threshold=sys.maxsize, linewidth=np.inf)
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-c', '--hypercubes')
