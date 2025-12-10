@@ -1,5 +1,9 @@
 Here are the scripts for application of Power Transform to the GFP random mutagenesis landscape.
 
+The approach considered by Sailer and Harms to reduce nonlinearities in fitness landscapes (Sailer, Harms, 2017) uses the Power Transform method with a modification of the Box-Cox power transformation. For each single mutation present in the landscape, the averaged effect across all genetic contexts is computed, and then, based on these effects, an additive phenotype is calculated for each genotype.
+
+Note that the Box-Cox-based Power Transform cannot be applied when either the observed or additive phenotypes take non-positive values. Although measured phenotypes in the GFP landscape are strictly positive, computed additive phenotypes can occasionally become zero or negative during analysis, which makes the Box-Cox transformation inapplicable. To address this limitation, we adopted an alternative formulation of the Power Transform based on the Yeo-Johnson transformation, which can accommodate non-positive values.
+
 The landscapes must be given to the scripts in hash table TSV format.
 
 Format example:
