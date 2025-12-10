@@ -2,7 +2,7 @@ import numpy as np
 import scipy as sp
 import argparse
 
-#this script is for hypercube-wise computations only. do not use it for full landscapes. 
+#this script is for a single combinatorially complete landscape
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-l', '--landscape')
