@@ -159,7 +159,7 @@ for p in Pobs:
 
 with open(args.filename[:-4] + '_linearized_47.csv', 'w') as f:  # making the output file
     for j in range(len(genotypes)):
-        f.write(genotypes[j] + ',' + str(Pobs_linear[j]) + '\n')
+        f.write(genotypes[j] + '\t' + str(Pobs_linear[j]) + '\n')
 
 # PLOTTING
 x = np.linspace(min(Padd), max(Padd), 1000)
