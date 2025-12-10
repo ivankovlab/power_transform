@@ -94,13 +94,13 @@ for p in Pobs:
 
 with open(args.output, 'w') as fout: # making the output file
     for j in range(len(genotypes)):
-        fout.write(genotypes[j] + ',' + str(Pobs_linear[j]) + '\n')
+        fout.write(genotypes[j] + '\t' + str(Pobs_linear[j]) + '\n')
 
 x = np.linspace(min(Padd), max(Padd), 1000)
 y = np.zeros(1000)
 y = model(x, popt[0], popt[1], popt[2])
 
 with open(args.model, 'w') as fmod: # making the model file for plotting
-    print('x,y', file=fmod)
+    print('x\ty', file=fmod)
     for xi, yi in zip(x, y):
         print(f'{xi},{yi}')
