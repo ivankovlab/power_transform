@@ -1,8 +1,11 @@
 import numpy as np
 import scipy as sp
 import argparse
+import sys
 
 #this script is for a single combinatorially complete landscape
+
+np.printoptions(threshold=sys.maxsize,linewidth=np.inf)
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-l', '--landscape')
