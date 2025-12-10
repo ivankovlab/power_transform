@@ -20,8 +20,8 @@ Pobs = list()
 
 with open(args.filename) as f:     # parsing the landscape file (hash table format)
     for line in f:
-        genotypes.append(line.split(',')[0])
-        phenotype = float(line.split(',')[1].strip())
+        genotypes.append(line.split()[0])
+        phenotype = float(line.split()[1].strip())
         Pobs.append(phenotype)
 
 from collections import defaultdict
