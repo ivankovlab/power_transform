@@ -13,7 +13,7 @@ land = dict()
 
 with open(args.landscape) as f:  # parsing the landscape file (hash table format)
     for line in f:
-        spl = line.split('\t')
+        spl = line.split()
         land[spl[0]] = spl[1]
 
 import numpy as np
