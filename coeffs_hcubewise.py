@@ -1,8 +1,11 @@
 import numpy as np
 import scipy as sp
 import argparse
+import sys
 
-#this script is for hypercube-wise computations only. do not use it for full landscapes. 
+#this script is for hypercube-wise computations only. do not use it for full landscapes.
+
+np.printoptions(threshold=sys.maxsize,linewidth=np.inf)
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-l', '--landscape')
