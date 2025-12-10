@@ -89,3 +89,8 @@ CC  2.4
 4) Script for quantifying the epistasis - quant.py
    
    Usage: python3 quant.py landscape.tsv
+   
+
+5) Script for finding simply connected components in the random mutagenesis landscape - find_max_subset.py
+
+   Usage: python3 find_max_subset.py landscape.tsv
