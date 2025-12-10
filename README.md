@@ -94,3 +94,7 @@ CC  2.4
 5) Script for finding simply connected components in the random mutagenesis landscape - find_max_subset.py
 
    Usage: python3 find_max_subset.py landscape.tsv
+
+
+
+The GFP random mutagenesis landscape (Sarkisyan et al., 2016) in hash table format is stored in GFP_hashtable.tsv.
