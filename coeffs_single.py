@@ -5,7 +5,7 @@ import sys
 
 #this script is for a single combinatorially complete landscape
 
-np.printoptions(threshold=sys.maxsize,linewidth=np.inf)
+np.printoptions(threshold=sys.maxsize, linewidth=np.inf)
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-l', '--landscape')
