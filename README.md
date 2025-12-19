@@ -9,11 +9,8 @@ The landscapes must be given to the scripts in hash table TSV format.
 Format example:
 
 AA  1.0
-
 AC  1.2
-
 CA  1.5
-
 CC  2.4
 
 1) Scripts for Box-Cox method
