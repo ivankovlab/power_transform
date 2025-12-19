@@ -94,6 +94,7 @@ CC  2.4
 6) Script for finding simply connected components in the random mutagenesis landscape - find_max_subset.py
 
    Usage: python3 find_max_subset.py landscape.tsv
+   
 
 7) Script for formatting the fitness landscape file to the hash table format - to_hash.py
 
@@ -101,4 +102,8 @@ CC  2.4
 
    sequence means the wildtype amino acid or nucleotide sequence
 
+
 The GFP random mutagenesis landscape (Sarkisyan et al., 2016) was used with all these scripts to obtain all the results published in our paper.
+To obtain the GFP random mutagenesis landscape file, you need to download the file named amino_acid_genotypes_to_brightness.tsv from http://dx.doi.org/10.6084/m9.figshare.3102154, and then use the Perl script process_data.pl
+Usage: ./process_data.pl amino_acid_genotypes_to_brightness.tsv
+Then the file GFP.txt will be created.
