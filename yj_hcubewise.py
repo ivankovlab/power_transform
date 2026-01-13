@@ -154,7 +154,7 @@ with open(args.hypercubes) as fin, open(args.output, 'w') as fout:
                     continue   # sometimes (very rarely) the hypercube can not be linearized using this method. in this case we give up with this hypercube and continue with other hypercubes
         Pobs_linear = list()
         for p in Pobs:
-            Pobs_linear.append(model_reverse(p,popt[0],popt[1],popt[2],sp.stats.gmean(Padd+popt[1])))  # applying reverse transform to observed phenotypes to get linearized values
+            Pobs_linear.append(model_inverse(p,popt[0],popt[1],popt[2],sp.stats.gmean(Padd+popt[1])))  # applying reverse transform to observed phenotypes to get linearized values
 
         for j in range(len(genotypes)):
             fout.write(genotypes[j] + ',' + str(Pobs_linear[j]) + '\t')  # output
