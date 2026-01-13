@@ -75,6 +75,31 @@ def model(P_add, lam, A, B):  # defining the yeo-johnston based transform
     
     return P_obs
 
+def model_inverse(P_obs, lmbda, A, B, GM):
+    P_obs = np.array(P_obs, dtype=float)
+    
+    scaling_factor = GM ** (lmbda - 1)
+    W = (P_obs - B) * scaling_factor
+    
+    Y_shifted = np.zeros_like(W)
+    
+    pos_mask = W >= 0
+    neg_mask = ~pos_mask
+
+    if np.isclose(lmbda, 0):
+        Y_shifted[pos_mask] = np.exp(W[pos_mask]) - 1
+    else:
+        base = np.maximum(lmbda * W[pos_mask] + 1, 0)
+        Y_shifted[pos_mask] = np.power(base, 1.0 / lmbda) - 1
+
+    if np.isclose(lmbda, 2):
+        Y_shifted[neg_mask] = 1 - np.exp(-W[neg_mask])
+    else:
+        term = (2 - lmbda)
+        base = np.maximum(1 - term * W[neg_mask], 0)
+        Y_shifted[neg_mask] = 1 - np.power(base, 1.0 / term)
+
+    return Y_shifted - A
 
 parser = argparse.ArgumentParser()
 parser.add_argument('filename')
