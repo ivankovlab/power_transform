@@ -141,7 +141,7 @@ except ValueError:
             sys.exit(1) # sometimes (very rarely) the landscape can not be linearized using this method
 Pobs_linear = list()
 for p in Pobs:
-    Pobs_linear.append(model_reverse(p,popt[0],popt[1],popt[2],sp.stats.gmean(Padd+popt[1])))   # applying reverse transform to observed phenotypes to get linearized values
+    Pobs_linear.append(model_inverse(p,popt[0],popt[1],popt[2],sp.stats.gmean(Padd+popt[1])))   # applying reverse transform to observed phenotypes to get linearized values
 
 with open(args.output, 'w') as fout:  # making the output file
     for j in range(len(genotypes)):
