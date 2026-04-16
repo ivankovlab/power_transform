@@ -1,6 +1,6 @@
 #!/bin/python3
 
-#this script is used for formatting the fitness landscapes into the hash table format
+#this script is used for formatting the fitness landscapes from mutational view to the sequence view
 
 import argparse
 import csv
