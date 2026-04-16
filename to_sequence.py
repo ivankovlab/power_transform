@@ -1,55 +1,84 @@
 #!/bin/python3
 
-#this script is used for formatting the fitness landscapes from mutational view to the sequence view
+''' 
+This program changes format of the fitness landscapes from mutational view 
+to the sequence view.
+Mutational view file is as follows (with sequence ABCDE):
+  
+Genotype	Phenotype
+A1F	1.0
+C3G	2.0
+A1H:D4I	3.0
+B2J:D4K:E5L	4.0
+
+Expected sequence view output file is as follows:
+
+Sequence	Phenotype
+FBCDE	1.0
+ABGDE	2.0
+HBCIE	3.0
+AJCKL	4.0
+'''
 
 import argparse
 import csv
+import sys
+import inspect
 
-#Argument parsing
 parser = argparse.ArgumentParser()
 parser.add_argument('-f', '--filename')
 parser.add_argument('-s', '--sequence')
 args = parser.parse_args()
 
-with open(args.filename, newline = '') as fin:
-    grand = list()
-    st = set()
-    reader = csv.reader(fin, delimiter='\t')
-    next(reader)
-    for row in reader:
-        if '*' in row:
-            continue
-        grand.append(list())
-        grand[-1].append(row[1])
-        split = row[0].split(':')
-        grand[-1].append(list())
-        for mut in split:
-            grand[-1][-1].append(list())
-            grand[-1][-1][-1].append(mut[1:-1])
-            grand[-1][-1][-1].append(mut[-1])
-            st.add(mut[1:-1])
+def apply_mutations(wt_seq: str, mutations: str) -> str:
+    '''
+    Apply list of mutations to the reference/wildtype sequence.
+    Format of string with mutations is 'A123C:D45E:S125M'
+    '''
+    if mutations.lower() == 'wt':
+        return wt_seq
 
-if '' in st:
-    st.remove('')
-st_ = set(map(int, st))
+    seq = list(wt_seq)
 
-seqlst = list(args.sequence)
-seqtrunc = list()
-for i in range(len(seqlst)):
-    if (i+1) in st_:
-        seqtrunc.append(seqlst[i])
+    for mut in mutations.split(':'):
+        orig_aa = mut[0]
+        mut_aa = mut[-1]
+        pos = int(mut[1:-1])  # 1-based
+        if orig_aa != seq[pos - 1]:
+            print(inspect.cleandoc(f'''
+                ERROR: amino acid in pos {pos} is {seq[pos - 1]} while \
+                    {orig_aa} in mutational list. 
+                    The output file was not produced. 
+                    Correct the input sequence and run again.'''),
+                  file=sys.stderr)
+            sys.exit(0)
+        seq[pos - 1] = mut_aa
 
-num = sorted(list(st_))
-enum = dict(enumerate(num))
-enum_ = dict()
-for k, v in enum.items():
-    enum_[v] = k
+    return ''.join(seq)
 
-with open(args.filename.split('.')[0] + '_hashtable.tsv', 'w') as fout:
-    for i in range(len(grand)):
-        seqtrunc_copy = seqtrunc.copy()
-        for j in range(len(grand[i][-1])):
-            if grand[i][-1][j][1] == 't':
-                continue
-            seqtrunc_copy[enum_[int(grand[i][-1][j][0])]] = grand[i][-1][j][1]
-        fout.write(''.join(seqtrunc_copy) + '\t' + grand[i][0] + '\n')
+
+def convert_tsv(
+    input_tsv: str,
+    output_tsv: str,
+    wt_sequence: str
+):
+    
+    with open(input_tsv, newline='') as fin, \
+         open(output_tsv, 'w', newline='') as fout:
+
+        reader = csv.reader(fin, delimiter='\t')
+        writer = csv.writer(fout, delimiter='\t')
+        row = next(reader)
+        print(' '.join(row), file=fout)
+#        print('Sequence', 'Phenotype', sep='\t', newline='')
+
+        for row in reader:
+            mutations = row[0].strip()
+            phenotype = ''.join(row[1:])
+
+            mutant_seq = apply_mutations(wt_sequence, mutations)
+
+            writer.writerow([mutant_seq, phenotype])
+
+
+convert_tsv(args.filename, args.filename.split('.')[0] + '_seq.tsv', args.sequence)
