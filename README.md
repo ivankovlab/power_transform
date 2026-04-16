@@ -4,13 +4,11 @@ The approach considered by Sailer and Harms to reduce nonlinearities in fitness 
 
 Note that the Box-Cox-based Power Transform cannot be applied when either the observed or additive phenotypes take non-positive values. Although measured phenotypes in the GFP landscape are strictly positive, computed additive phenotypes can occasionally become zero or negative during analysis, which makes the Box-Cox transformation inapplicable. To address this limitation, we adopted an alternative formulation of the Power Transform based on the Yeo-Johnson transformation, which can accommodate non-positive values.
 
-The landscapes must be given to the scripts in hash table TSV format.
+The landscapes must be given to the scripts in TSV format. The example of such file "landscape.tsv" is as follows:
 
-Format example:
-
-AA  1.0
-AC  1.2
-CA  1.5
+AA  1.0  
+AC  1.2  
+CA  1.5  
 CC  2.4
 
 1) Scripts for Box-Cox method
@@ -18,12 +16,12 @@ CC  2.4
 
    bc_single.py - the script for application of Box-Cox method to a single combinatorially complete landscape.
    
-   Usage: python3 bc_single.py filename.tsv
+   Usage: python3 bc_single.py landscape.tsv
    
 
    bc_hcubewise.py - the script for application of Box-Cox method to a random mutagenesis landscape hypercube-wisely.
    
-   Usage: python3 bc_hcubewise.py -c hypercubes.txt -l landscape.txt -o output.tsv
+   Usage: python3 bc_hcubewise.py -c hypercubes.txt -l landscape.tsv -o output.tsv
    
    hypercubes.txt means the output of application of HypercubeME program to the landscape.
    
