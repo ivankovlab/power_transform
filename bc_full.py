@@ -1,5 +1,9 @@
 import argparse
 import sys
+import numpy as np
+import scipy as sp
+from sklearn.preprocessing import PowerTransformer
+from collections import defaultdict
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-l', '--landscape')
@@ -7,29 +11,60 @@ parser.add_argument('-o', '--output')
 parser.add_argument('-m', '--model')
 args = parser.parse_args()
 
-# this is the box-cox linearization script for full-landscape computation
+# This is the Box-Cox linearization script for full-landscape computation
 
 genotypes = list()
 Pobs = list()
 
-with open(args.landscape) as f:     # parsing the landscape file (hash table format)
+with open(args.landscape) as f:     # Parse the landscape file (genotypes in sequence format)
     for line in f:
         spl = line.split()
         genotypes.append(spl[0])
         Pobs.append(float(spl[1]))
 
-import numpy as np
-import scipy as sp
-import math
-import matplotlib.pyplot as plt
-from sklearn.preprocessing import PowerTransformer
+def model(Padd: np.array[float], lmbda: float, A: float, B: float):  # Define the Box-Cox based transform
+    """
+    
 
-def model(Padd, lmbda, A, B):       # defining the box-cox based transform
-    return ((Padd + A) ** lmbda - 1) / (lmbda * sp.stats.gmean(Padd + A) ** (lmbda - 1)) + B if lmbda !=0 else sp.stats.gmean(Padd + A)*np.log(Padd + A) + B
+    Parameters
+    ----------
+    Padd : np.array[float]
+        ADDITIVE PHENOTYPES.
+    lmbda : float
+        LMBDA PARAMETER.
+    A : float
+        A PARAMETER.
+    B : float
+        B PARAMETER.
 
-from collections import defaultdict
+    Returns
+    -------
+    np.array[float]
+        OBSERVED PHENOTYPES.
 
-def calculate_additive_phenotypes(genotypes, phenotypes):    # calculating additive phenotypes
+    """
+    if lmbda !=0:
+        return ((Padd + A) ** lmbda - 1) / (lmbda * sp.stats.gmean(Padd + A) ** (lmbda - 1)) + B
+    else:
+        return sp.stats.gmean(Padd + A) * np.log(Padd + A) + B
+
+def calculate_additive_phenotypes(genotypes: list[str], phenotypes: list[float]):    # Calculate additive phenotypes
+    """
+    
+
+    Parameters
+    ----------
+    genotypes : list[str]
+        GENOTYPES.
+    phenotypes : list[float]
+        OBSERVED PHENOTYPES.
+
+    Returns
+    -------
+    list[float]
+        ADDITIVE PHENOTYPES.
+
+    """
     n = len(genotypes)
     if n == 0:
         return []
@@ -77,22 +112,25 @@ Padd = np.array(calculate_additive_phenotypes(genotypes, Pobs))
 
 pt = PowerTransformer()
 pt.fit(Padd.reshape(-1, 1))
-lambdas = pt.lambdas_        # initial guess for lambda parameter
+lambdas = pt.lambdas_        # Initial guess for lambda parameter
 try:
     popt, pcov = sp.optimize.curve_fit(f=model, xdata=Padd, ydata=Pobs, sigma=0.01, p0=[lambdas[0],0,0],
-        bounds=([0, -min(Padd), -np.inf], [2, np.inf, min(Pobs)]), max_nfev=1e6)     # if the initial lambda guess is in [0, 2] interval, we try to avoid very large or very little lambda values
+        bounds=([0, -min(Padd), -np.inf], [2, np.inf, min(Pobs)]), max_nfev=1e6)
+    # If the initial lambda guess is in [0, 2] interval, we try to avoid very large or very little lambda values
 except ValueError:
     try:
         popt, pcov = sp.optimize.curve_fit(f=model, xdata=Padd, ydata=Pobs, sigma=0.01, p0=[lambdas[0],0,0],
-            bounds=([-np.inf, -min(Padd), -np.inf], [np.inf, np.inf, min(Pobs)]), max_nfev=1e6) # if it is not possible, we fit with no restrictions other than mathematical
+            bounds=([-np.inf, -min(Padd), -np.inf], [np.inf, np.inf, min(Pobs)]), max_nfev=1e6) 
+        # If it is not possible, we fit with no restrictions other than mathematical
     except ValueError:
         print('FAILED TO LINEARIZE THE LANDSCAPE\n')
-        sys.exit(1) # sometimes (very rarely) the landscape can not be linearized using this method
+        sys.exit(1) # Sometimes (very rarely) the landscape can not be linearized using this method
 Pobs_linear = list()
 for p in Pobs:
-    Pobs_linear.append((popt[0] * sp.stats.gmean(Padd + popt[1]) ** (popt[0] - 1) * (p - popt[2]) + 1) ** (1 / popt[0]) - popt[1]) # applying reverse transform to observed phenotypes to get linearized values
+    Pobs_linear.append((popt[0] * sp.stats.gmean(Padd + popt[1]) ** (popt[0] - 1) * (p - popt[2]) + 1) ** (1 / popt[0]) - popt[1])
+    # Apply reverse transform to observed phenotypes to get linearized values
 
-with open(args.output, 'w') as fout: # making the output file
+with open(args.output, 'w') as fout: # Make the output file
     for j in range(len(genotypes)):
         fout.write(genotypes[j] + '\t' + str(Pobs_linear[j]) + '\n')
 
@@ -100,7 +138,7 @@ x = np.linspace(min(Padd), max(Padd), 1000)
 y = np.zeros(1000)
 y = model(x, popt[0], popt[1], popt[2])
 
-with open(args.model, 'w') as fmod: # making the model file for plotting
+with open(args.model, 'w') as fmod: # Make the model file for plotting
     print('x\ty', file=fmod)
     for xi, yi in zip(x, y):
         print(f'{xi},{yi}')
