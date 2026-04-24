@@ -1,7 +1,9 @@
+# This script is for finding all the simply connected components of a fitness landscape.
+
 import sys
 from collections import deque
 
-def build_graph(sequences, alphabet):
+def build_graph(sequences: list[str], alphabet: str):
     """
     Phase 1: Efficient Graph Construction.
     Builds an adjacency list where edges connect sequences 
@@ -53,7 +55,7 @@ def build_graph(sequences, alphabet):
             
     return graph
 
-def find_connected_components(n, graph):
+def find_connected_components(n: int, graph: list[list[int]]):
     """
     Phase 2: Find connected components using BFS.
     """
@@ -83,7 +85,7 @@ def find_connected_components(n, graph):
             
     return all_components
 
-def analyze_sequences(sequences, alphabet):
+def analyze_sequences(sequences: list[str], alphabet: str):
     """
     Main analysis logic and output formatting.
     """
