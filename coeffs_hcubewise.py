@@ -3,7 +3,9 @@ import scipy as sp
 import argparse
 import sys
 
-#this script is for hypercube-wise computations only. do not use it for full landscapes.
+# This script is for calculatinf epistasis coeffients.
+# Use it only in one particular case: after you have used either bc_hcubewise.py or yj_hcubewise.py.
+# It is designed for taking the output of these scripts as input.
 
 np.printoptions(threshold=sys.maxsize, linewidth=np.inf)
 
@@ -28,7 +30,7 @@ VH = np.matmul(V, H)
 with open(args.landscape) as fin, open(args.output, 'w') as fout:
     for line in fin:
         if line != 'FAILED TO LINEARIZE THIS HYPERCUBE\n':
-            P = np.array([float(part.split(',')[1].strip()) for part in line.strip().split()]) # phenotypes in one hypercube
+            P = np.array([float(part.split(',')[1].strip()) for part in line.strip().split()]) # Phenotypes in one hypercube
             K = np.matmul(VH, P)
             print(K, file=fout)
         else:
