@@ -3,7 +3,7 @@ import scipy as sp
 import argparse
 import sys
 
-#this script is for a single combinatorially complete landscape
+# This script is for calculating epistatic coefficients in a combinatorially complete landscape.
 
 np.printoptions(threshold=sys.maxsize, linewidth=np.inf)
 
@@ -24,10 +24,11 @@ for _ in range(order):
     diag = np.concatenate([0.5 * diag, -1.0 * diag])
 V = np.diag(diag) # as in Poelwijk (2016)
 VH = np.matmul(V, H)
+P = []
 
 with open(args.landscape) as fin, open(args.output, 'w') as fout:
   for line in fin:
-    P.append(line.strip()[1].split())
+    P.append(line.split()[1].strip())
   P = np.array(P)
   K = np.matmul(VH, P)
   print(K, file=fout)
