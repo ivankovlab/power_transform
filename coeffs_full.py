@@ -3,7 +3,9 @@ import scipy as sp
 import argparse
 import sys
 
-# this script is for full-landscape computations only. do not use it for hypercube-wise.
+# This script calculates the epistatic coefficients in an arbitrary landscape.
+# If your landscape is combinatorially complete, consider choosing coeffs_single.py,
+# which is designed for this particular case.
 
 np.printoptions(threshold=sys.maxsize, linewidth=np.inf)
 
@@ -17,7 +19,7 @@ args = parser.parse_args()
 land = dict()
 hcubes = list()
 
-with open(args.hypercubes) as f: # Parsing HypercubeME-2 output (hash table)
+with open(args.hypercubes) as f: # Parse standard HypercubeME-2 output
     for line in f:
         hcubes.append(list())
         hcubes[-1].append(line.split('\t')[1].strip())
@@ -28,7 +30,7 @@ with open(args.hypercubes) as f: # Parsing HypercubeME-2 output (hash table)
                 temp.append(seq[:int(mut[1:-1])]+mut[0]+seq[int(mut[1:-1])+1:])
             hcubes[-1].extend(temp)
 
-with open(args.landscape) as f: # Parsing fitness landscape (hash table)
+with open(args.landscape) as f: # Parse fitness landscape (genotypes in sequence format)
     for line in f:
         spl = line.split('\t')
         land[spl[0]] = spl[1]
