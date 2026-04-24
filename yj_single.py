@@ -1,16 +1,11 @@
 import numpy as np
 import scipy as sp
-import math
 import argparse
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import PowerTransformer
-import pwlf
-
-import numpy as np
 from scipy.stats import gmean
-from scipy.optimize import curve_fit
 
-# this is the yeo-johnston linearization script for a single combinatorially complete landscape
+# This is the Yeo-Johnston linearization script for a single combinatorially complete landscape
 
 def model(P_add, lam, A, B):  # defining the yeo-johnston based transform
     """
@@ -75,7 +70,29 @@ def model(P_add, lam, A, B):  # defining the yeo-johnston based transform
     
     return P_obs
 
-def model_inverse(P_obs, lmbda, A, B, GM):
+def model_inverse(P_obs: np.array[float], lmbda: float, A: float, B: float, GM: float): # Define the inverse transform
+    """
+    
+
+    Parameters
+    ----------
+    P_obs : np.array[float]
+        OBSERVED PHENOTYPES.
+    lmbda : float
+        LMBDA PARAMETER.
+    A : float
+        A PARAMETER.
+    B : float
+        B PARAMETER.
+    GM : float
+        GEOMETRIC MEAN OF ADDITIVE PHENOTYPES + A.
+
+    Returns
+    -------
+    np.array[float]
+        LINEARIZED PHENOTYPES.
+
+    """
     P_obs = np.array(P_obs, dtype=float)
     
     scaling_factor = GM ** (lmbda - 1)
@@ -108,7 +125,7 @@ args = parser.parse_args()
 genotypes = list()
 Pobs = list()
 
-with open(args.filename) as f:  # parsing the landscape file (hash table format)
+with open(args.filename) as f:  # Parse the landscape file (genotypes in sequence format)
     for line in f:
         genotypes.append(line.split()[0])
         phenotype = float(line.split()[1].strip())
@@ -116,7 +133,23 @@ with open(args.filename) as f:  # parsing the landscape file (hash table format)
 
 from collections import defaultdict
 
-def calculate_additive_phenotypes(genotypes, phenotypes):  # calculating additive phenotypes
+def calculate_additive_phenotypes(genotypes: list[str], phenotypes: list[float]):    # Calculate additive phenotypes
+    """
+    
+
+    Parameters
+    ----------
+    genotypes : list[str]
+        GENOTYPES.
+    phenotypes : list[float]
+        OBSERVED PHENOTYPES.
+
+    Returns
+    -------
+    list[float]
+        ADDITIVE PHENOTYPES.
+
+    """
     n = len(genotypes)
     if n == 0:
         return []
@@ -145,6 +178,7 @@ def calculate_additive_phenotypes(genotypes, phenotypes):  # calculating additiv
     for key, lst in effects_lists.items():
         if lst:
             effects[key] = sum(lst) / len(lst)
+    print(effects)
     additive_phenotypes = []
     for g in genotypes:
         add = wt_phen
@@ -155,14 +189,14 @@ def calculate_additive_phenotypes(genotypes, phenotypes):  # calculating additiv
                 key = (p, from_aa, to_aa)
                 add += effects[key]
         additive_phenotypes.append(add)
-    
+
     return additive_phenotypes
 
 Padd = np.array(calculate_additive_phenotypes(genotypes, Pobs))
 
 pt = PowerTransformer()
 pt.fit(Padd.reshape(-1, 1))
-lambdas = pt.lambdas_  # initial guess for lambda parameter
+lambdas = pt.lambdas_  # Initial guess for lambda parameter
 print(lambdas)
 
 print(Pobs)
@@ -170,19 +204,22 @@ print(Padd)
 
 try:
     popt, pcov = sp.optimize.curve_fit(f=model, xdata=Padd, ydata=Pobs, sigma=0.01, p0=[lambdas[0],-min(Padd)+5*abs(max(Padd)),0],
-        bounds=([0, -min(Padd), -np.inf], [2, np.inf, np.inf]), max_nfev=1e6)  # if the initial lambda guess is in [0, 2] interval, we try to avoid very large or very little lambda values
+        bounds=([0, -min(Padd), -np.inf], [2, np.inf, np.inf]), max_nfev=1e6)  
+    # If the initial lambda guess is in [0, 2] interval, we try to avoid very large or very little lambda values
 except ValueError:
     popt, pcov = sp.optimize.curve_fit(f=model, xdata=Padd, ydata=Pobs, sigma=0.01, p0=[lambdas[0],-min(Padd)+5*abs(max(Padd)),0],
-        bounds=([-np.inf, -min(Padd), -np.inf], [np.inf, np.inf, np.inf]), max_nfev=1e6)  # if it is not possible, we fit with no restrictions other than mathematical
+        bounds=([-np.inf, -min(Padd), -np.inf], [np.inf, np.inf, np.inf]), max_nfev=1e6) 
+    # If it is not possible, we fit with no restrictions other than mathematical
 print(popt)
 print(pcov)
 
 Pobs_linear = list()
 
 for p in Pobs:
-    Pobs_linear.append(model_inverse(p,popt[0],popt[1],popt[2],sp.stats.gmean(Padd+popt[1])))  # applying reverse transform to observed phenotypes to get linearized values
+    Pobs_linear.append(model_inverse(p,popt[0],popt[1],popt[2],sp.stats.gmean(Padd+popt[1]))) 
+    # Apply reverse transform to observed phenotypes to get linearized values
 
-with open(args.filename[:-4] + '_linearized_47.csv', 'w') as f:  # making the output file
+with open(args.filename[:-4] + '_linearized_47.csv', 'w') as f:  # Make the output file
     for j in range(len(genotypes)):
         f.write(genotypes[j] + '\t' + str(Pobs_linear[j]) + '\n')
 
