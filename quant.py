@@ -2,7 +2,8 @@ import math
 import os
 import argparse
 
-# this is the script for calculating the quantity of the 2nd order epistasis
+# This is the script for calculating the quantity of epistasis.
+# It takes as input the output of coeffs_... scripts.
 
 parser = argparse.ArgumentParser()
 parser.add_argument('filename')
