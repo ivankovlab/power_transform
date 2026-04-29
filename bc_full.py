@@ -117,6 +117,7 @@ Padd = np.array(calculate_additive_phenotypes(genotypes, Pobs))
 pt = PowerTransformer()
 pt.fit(Padd.reshape(-1, 1))
 lambdas = pt.lambdas_
+print(lambdas)
 
 try:
     # If the initial lambda guess is in [0, 2] interval, we try to avoid very large or very little lambda values
@@ -143,7 +144,7 @@ with open(args.output, 'w') as fout:
     for j in range(len(genotypes)):
         fout.write(genotypes[j] + '\t' + str(Pobs_linear[j]) + '\n')
 
-# Make the model file for plotting
+# Make the model file for plotting the power transform function
 x = np.linspace(min(Padd), max(Padd), 1000)
 y = np.zeros(1000)
 y = model(x, popt[0], popt[1], popt[2])
