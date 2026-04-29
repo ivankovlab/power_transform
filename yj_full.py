@@ -1,3 +1,7 @@
+'''
+This is the Yeo-Johnston linearization script for full-landscape computation
+'''
+
 import argparse
 import sys
 import numpy as np
@@ -5,41 +9,27 @@ import scipy as sp
 from sklearn.preprocessing import PowerTransformer
 from collections import defaultdict
 
-# This is the Yeo-Johnston linearization script for full-landscape computation
+def model(P_add, lam, A, B):
+    '''
+    Define the Yeo-Johnson based transform
 
-parser = argparse.ArgumentParser()
-parser.add_argument('-l', '--landscape')
-parser.add_argument('-o', '--output')
-parser.add_argument('-m', '--model')
-args = parser.parse_args()
+    Parameters
+    ----------
+    Padd : np.array[float]
+        ADDITIVE PHENOTYPES.
+    lmbda : float
+        LMBDA PARAMETER.
+    A : float
+        A PARAMETER.
+    B : float
+        B PARAMETER.
 
-genotypes = list()
-Pobs = list()
+    Returns
+    -------
+    np.array[float]
+        OBSERVED PHENOTYPES.
 
-with open(args.landscape) as f:  # Parse the landscape file (genotypes in sequence format)
-    for line in f:
-        spl = line.split()
-        genotypes.append(spl[0])
-        Pobs.append(float(spl[1]))
-
-def model(P_add, lam, A, B):  # defining the yeo-johnston based transform
-    """
-    A function for curve_fit based on a custom Yeo-Johnson formula:
-    P_obs = [Psi(P_add + A, lam) / (GM**(lam - 1))] + B
-    
-    where:
-    - Psi is the core Yeo-Johnson transform (positive case)
-    - GM = gmean(P_add + A)
-
-    Args:
-        P_add (array_like): The independent variable (xdata).
-        lam (float): The lambda parameter to be fitted.
-        A (float): The additive shift parameter to be fitted.
-        B (float): The final additive shift parameter to be fitted.
-        
-    Returns:
-        array_like: The transformed data (P_obs).
-    """
+    '''
     
     # --- Step 1: Apply the shift parameter 'A' ---
     try:
@@ -85,10 +75,10 @@ def model(P_add, lam, A, B):  # defining the yeo-johnston based transform
     
     return P_obs
 
-def model_inverse(P_obs: np.array[float], lmbda: float, A: float, B: float, GM: float): # Define the inverse transform
-    """
+def model_inverse(P_obs: np.array[float], lmbda: float, A: float, B: float, GM: float):
+    '''
+    Define the inverse Yeo-Johnson based transform
     
-
     Parameters
     ----------
     P_obs : np.array[float]
@@ -107,7 +97,7 @@ def model_inverse(P_obs: np.array[float], lmbda: float, A: float, B: float, GM: 
     np.array[float]
         LINEARIZED PHENOTYPES.
 
-    """
+    '''
     P_obs = np.array(P_obs, dtype=float)
     
     scaling_factor = GM ** (lmbda - 1)
@@ -133,14 +123,14 @@ def model_inverse(P_obs: np.array[float], lmbda: float, A: float, B: float, GM: 
 
     return Y_shifted - A
 
-def calculate_additive_phenotypes(genotypes: list[str], phenotypes: list[float]):    # Calculate additive phenotypes
-    """
-    
+def calculate_additive_phenotypes(genotypes: list[str], phenotypes: list[float]):
+    '''
+    Calculate additive phenotypes
 
     Parameters
     ----------
     genotypes : list[str]
-        GENOTYPES.
+        GENOTYPES IN SEQUENCE FORMAT.
     phenotypes : list[float]
         OBSERVED PHENOTYPES.
 
@@ -149,7 +139,7 @@ def calculate_additive_phenotypes(genotypes: list[str], phenotypes: list[float])
     list[float]
         ADDITIVE PHENOTYPES.
 
-    """
+    '''
     n = len(genotypes)
     if n == 0:
         return []
@@ -192,38 +182,60 @@ def calculate_additive_phenotypes(genotypes: list[str], phenotypes: list[float])
 
     return additive_phenotypes
 
+parser = argparse.ArgumentParser()
+parser.add_argument('-l', '--landscape')
+parser.add_argument('-o', '--output')
+parser.add_argument('-m', '--model')
+args = parser.parse_args()
 
+genotypes = list()
+Pobs = list()
+
+# Parse the landscape file (genotypes in sequence format)
+with open(args.landscape) as f:
+    for line in f:
+        spl = line.split()
+        genotypes.append(spl[0])
+        Pobs.append(float(spl[1]))
+
+# Calculate additive phenotypes
 Padd = np.array(calculate_additive_phenotypes(genotypes, Pobs))
 
+# Initial guess for lambda parameter
 pt = PowerTransformer()
 pt.fit(Padd.reshape(-1, 1))
-lambdas = pt.lambdas_       # Initial guess for lambda parameter
+lambdas = pt.lambdas_ 
+
 try:
+    # If the initial lambda guess is in [0, 2] interval, we try to avoid very large or very little lambda values
     popt, pcov = sp.optimize.curve_fit(f=model, xdata=Padd, ydata=Pobs, sigma=0.01, p0=[lambdas[0],-min(Padd)+5*max(Padd),0],
         bounds=([0, -min(Padd), -np.inf], [2, np.inf, np.inf]), max_nfev=1e6)   
-    # If the initial lambda guess is in [0, 2] interval, we try to avoid very large or very little lambda values
 except ValueError:
     try:
+        # If it is not possible, we fit with no restrictions other than mathematical
         popt, pcov = sp.optimize.curve_fit(f=model, xdata=Padd, ydata=Pobs, sigma=0.01, p0=[lambdas[0],-min(Padd)+5*max(Padd),0],
             bounds=([-np.inf, -min(Padd), -np.inf], [np.inf, np.inf, np.inf]), max_nfev=1e6)  
-        # If it is not possible, we fit with no restrictions other than mathematical
     except ValueError:
+        # Sometimes (very rarely) the landscape can not be linearized using this method
         print('FAILED TO LINEARIZE THE LANDSCAPE\n')
-        sys.exit(1) # Sometimes (very rarely) the landscape can not be linearized using this method
+        sys.exit(1)
+
+ # Apply reverse transform to observed phenotypes to get linearized values
 Pobs_linear = list()
 for p in Pobs:
     Pobs_linear.append(model_inverse(p,popt[0],popt[1],popt[2],sp.stats.gmean(Padd+popt[1])))
-    # Apply reverse transform to observed phenotypes to get linearized values
 
-with open(args.output, 'w') as fout:  # Make the output file
+# Write the output to file
+with open(args.output, 'w') as fout:
     for j in range(len(genotypes)):
         fout.write(genotypes[j] + '\t' + str(Pobs_linear[j]) + '\n')
 
+# Make the model file for plotting the power transform function
 x = np.linspace(min(Pobs), max(Pobs), 1000)
 y = np.zeros(1000)
 y = model(x, popt[0], popt[1], popt[2])
 
-with open(args.model, 'w') as fmod:  # Make the model file for plotting
+with open(args.model, 'w') as fmod:
     print('x\ty', file=fmod)
     for xi, yi in zip(x, y):
         print(f'{xi},{yi}',file=fmod)
