@@ -1,9 +1,11 @@
+'''
+This script is for calculating epistatic coefficients in a combinatorially complete landscape.
+'''
+
 import numpy as np
 import scipy as sp
 import argparse
 import sys
-
-# This script is for calculating epistatic coefficients in a combinatorially complete landscape.
 
 np.printoptions(threshold=sys.maxsize, linewidth=np.inf)
 
