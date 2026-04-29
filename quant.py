@@ -1,9 +1,11 @@
+'''
+This is the script for calculating the quantity of epistasis.
+It takes as input the output of coeffs_... scripts.
+'''
+
 import math
 import os
 import argparse
-
-# This is the script for calculating the quantity of epistasis.
-# It takes as input the output of coeffs_... scripts.
 
 parser = argparse.ArgumentParser()
 parser.add_argument('filename')
