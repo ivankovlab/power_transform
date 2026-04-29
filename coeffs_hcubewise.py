@@ -1,11 +1,13 @@
+'''
+This script is for calculating epistasis coeffients.
+Use it only in one particular case: after you have used either bc_hcubewise.py or yj_hcubewise.py.
+It is designed for taking the output of these scripts as input.
+'''
+
 import numpy as np
 import scipy as sp
 import argparse
 import sys
-
-# This script is for calculatinf epistasis coeffients.
-# Use it only in one particular case: after you have used either bc_hcubewise.py or yj_hcubewise.py.
-# It is designed for taking the output of these scripts as input.
 
 np.printoptions(threshold=sys.maxsize, linewidth=np.inf)
 
