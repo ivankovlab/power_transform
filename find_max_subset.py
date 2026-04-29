@@ -1,14 +1,16 @@
-# This script is for finding all the simply connected components of a fitness landscape.
+'''
+This script is for finding all the simply connected components of a fitness landscape.
+'''
 
 import sys
 from collections import deque
 
 def build_graph(sequences: list[str], alphabet: str):
-    """
+    '''
     Phase 1: Efficient Graph Construction.
     Builds an adjacency list where edges connect sequences 
     with a Hamming distance of exactly 1.
-    """
+    '''
     n = len(sequences)
     if n == 0:
         return []
@@ -40,7 +42,7 @@ def build_graph(sequences: list[str], alphabet: str):
                 
                 # Create a potential neighbor (Hamming distance = 1)
                 original_seq_list[j] = char
-                neighbor_str = "".join(original_seq_list)
+                neighbor_str = ''.join(original_seq_list)
                 
                 # Check if this neighbor exists in the input data
                 if neighbor_str in string_set:
@@ -56,9 +58,9 @@ def build_graph(sequences: list[str], alphabet: str):
     return graph
 
 def find_connected_components(n: int, graph: list[list[int]]):
-    """
+    '''
     Phase 2: Find connected components using BFS.
-    """
+    '''
     visited = [False] * n
     all_components = []
 
@@ -86,9 +88,9 @@ def find_connected_components(n: int, graph: list[list[int]]):
     return all_components
 
 def analyze_sequences(sequences: list[str], alphabet: str):
-    """
+    '''
     Main analysis logic and output formatting.
-    """
+    '''
     if not sequences:
         print("Sequence list is empty.")
         return
@@ -119,11 +121,11 @@ def analyze_sequences(sequences: list[str], alphabet: str):
 
 # --- Main Execution Block ---
 
-ALPHABET = "ACDEFGHIKLMNPQRSTVWY*"
+ALPHABET = 'ACDEFGHIKLMNPQRSTVWY*'
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("Usage: python find_max_subset.py <landscape_file>")
+        print('Usage: python find_max_subset.py <landscape_file>')
         sys.exit(1)
         
     fname = sys.argv[1]
