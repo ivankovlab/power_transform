@@ -1,42 +1,34 @@
+'''
+This is the Yeo-Jonhston linearization script for hypercube-wise computation
+'''
+
 import argparse
 import numpy as np
 import scipy as sp
 from sklearn.preprocessing import PowerTransformer
+from collections import defaultdict
 
-parser = argparse.ArgumentParser()
-parser.add_argument('-c', '--hypercubes')
-parser.add_argument('-l', '--landscape')
-parser.add_argument('-o', '--output')
-parser.add_argument('-m', '--model')
-args = parser.parse_args()
+def model(P_add, lam, A, B):
+    '''
+    Define the Yeo-Johnson based transform
 
-# This is the Yeo-Jonhston linearization script for hypercube-wise computation
+    Parameters
+    ----------
+    Padd : np.array[float]
+        ADDITIVE PHENOTYPES.
+    lmbda : float
+        LMBDA PARAMETER.
+    A : float
+        A PARAMETER.
+    B : float
+        B PARAMETER.
 
-land = dict()
+    Returns
+    -------
+    np.array[float]
+        OBSERVED PHENOTYPES.
 
-with open(args.landscape) as f:  # Parse the landscape file (genotypes in sequence format)
-    for line in f:
-        spl = line.split()
-        land[spl[0]] = spl[1]
-
-def model(P_add, lam, A, B):  # defining the yeo-johnston based transform
-    """
-    A function for curve_fit based on a custom Yeo-Johnson formula:
-    P_obs = [Psi(P_add + A, lam) / (GM**(lam - 1))] + B
-    
-    where:
-    - Psi is the core Yeo-Johnson transform (positive case)
-    - GM = gmean(P_add + A)
-
-    Args:
-        P_add (array_like): The independent variable (xdata).
-        lam (float): The lambda parameter to be fitted.
-        A (float): The additive shift parameter to be fitted.
-        B (float): The final additive shift parameter to be fitted.
-        
-    Returns:
-        array_like: The transformed data (P_obs).
-    """
+    '''
     
     # --- Step 1: Apply the shift parameter 'A' ---
     try:
@@ -82,10 +74,10 @@ def model(P_add, lam, A, B):  # defining the yeo-johnston based transform
     
     return P_obs
 
-def model_inverse(P_obs: np.array[float], lmbda: float, A: float, B: float, GM: float): # Define the inverse transform
-    """
+def model_inverse(P_obs: np.array[float], lmbda: float, A: float, B: float, GM: float):
+    '''
+    Define the inverse Yeo-Johnson based transform
     
-
     Parameters
     ----------
     P_obs : np.array[float]
@@ -104,7 +96,7 @@ def model_inverse(P_obs: np.array[float], lmbda: float, A: float, B: float, GM: 
     np.array[float]
         LINEARIZED PHENOTYPES.
 
-    """
+    '''
     P_obs = np.array(P_obs, dtype=float)
     
     scaling_factor = GM ** (lmbda - 1)
@@ -130,19 +122,14 @@ def model_inverse(P_obs: np.array[float], lmbda: float, A: float, B: float, GM: 
 
     return Y_shifted - A
 
-genotypes = list()
-Pobs = list()
-
-from collections import defaultdict
-
 def calculate_additive_phenotypes(genotypes: list[str], phenotypes: list[float]):    # Calculate additive phenotypes
-    """
-    
+   '''
+    Calculate additive phenotypes
 
     Parameters
     ----------
     genotypes : list[str]
-        GENOTYPES.
+        GENOTYPES IN SEQUENCE FORMAT.
     phenotypes : list[float]
         OBSERVED PHENOTYPES.
 
@@ -151,7 +138,7 @@ def calculate_additive_phenotypes(genotypes: list[str], phenotypes: list[float])
     list[float]
         ADDITIVE PHENOTYPES.
 
-    """
+    '''
     n = len(genotypes)
     if n == 0:
         return []
@@ -194,9 +181,28 @@ def calculate_additive_phenotypes(genotypes: list[str], phenotypes: list[float])
 
     return additive_phenotypes
 
+parser = argparse.ArgumentParser()
+parser.add_argument('-c', '--hypercubes')
+parser.add_argument('-l', '--landscape')
+parser.add_argument('-o', '--output')
+parser.add_argument('-m', '--model')
+args = parser.parse_args()
+
+land = dict()
+
+# Parse the landscape file (genotypes in sequence format)
+with open(args.landscape) as f:
+    for line in f:
+        spl = line.split()
+        land[spl[0]] = spl[1]
+        
+genotypes = list()
+Pobs = list()
 
 with open(args.hypercubes) as fin, open(args.output, 'w') as fout:
     for line in fin:
+
+        # Define each hypercube in situ
         genotypes = list()
         genotypes.append(line.split()[1].strip())
         muts = line.split()[0].split(':')
@@ -204,34 +210,39 @@ with open(args.hypercubes) as fin, open(args.output, 'w') as fout:
             temp = list()
             for seq in genotypes:
                 temp.append(seq[:int(mut[1:-1])]+mut[0]+seq[int(mut[1:-1])+1:])
-            genotypes.extend(temp)  # Defining each hypercube in situ
+            genotypes.extend(temp)
 
-        Pobs = list(map(float, [land[genotype] for genotype in genotypes]))  # Find phenotypes for needed genotypes
+        # Find phenotypes for needed genotypes
+        Pobs = list(map(float, [land[genotype] for genotype in genotypes]))
         Padd = np.array(calculate_additive_phenotypes(genotypes, Pobs))
 
+        # Initial guess for lambda parameter
         pt = PowerTransformer()
         pt.fit(Padd.reshape(-1, 1))
-        lambdas = pt.lambdas_  # Initial guess for lambda parameter
+        lambdas = pt.lambdas_
+        
         try:
+            # If the initial lambda guess is in [0, 2] interval, we try to avoid very large or very little lambda values
             popt, pcov = sp.optimize.curve_fit(f=model, xdata=Padd, ydata=Pobs, sigma=0.01, p0=[lambdas[0],-min(Padd)+5*max(Padd),0],
                 bounds=([0, -min(Padd), -np.inf], [2, np.inf, np.inf]), max_nfev=1e6) 
-            # If the initial lambda guess is in [0, 2] interval, we try to avoid very large or very little lambda values
         except ValueError:
             try:
+                # If it is not possible, we fit with no restrictions other than mathematical
                 popt, pcov = sp.optimize.curve_fit(f=model, xdata=Padd, ydata=Pobs, sigma=0.01, p0=[lambdas[0],-min(Padd)+5*max(Padd),0],
                     bounds=([-np.inf, -min(Padd), -np.inf], [np.inf, np.inf, np.inf]), max_nfev=1e6)  
-                # If it is not possible, we fit with no restrictions other than mathematical
             except ValueError:
+                # Sometimes (very rarely) the hypercube can not be linearized using this method.
+                # In this case we give up with this hypercube and continue with other hypercubes
                 print('FAILED TO LINEARIZE THE HYPERCUBE\n', file=fout)
-                continue  
-            # Sometimes (very rarely) the hypercube can not be linearized using this method.
-            # In this case we give up with this hypercube and continue with other hypercubes
+                continue
+
+        # Apply reverse transform to observed phenotypes to get linearized values
         Pobs_linear = list()
         for p in Pobs:
             Pobs_linear.append(model_inverse(p,popt[0],popt[1],popt[2],sp.stats.gmean(Padd+popt[1]))) 
-            # Apply reverse transform to observed phenotypes to get linearized values
 
+        # Write the output to file
         for j in range(len(genotypes)):
-            fout.write(genotypes[j] + ',' + str(Pobs_linear[j]) + '\t')  # output
+            fout.write(genotypes[j] + ',' + str(Pobs_linear[j]) + '\t')
         fout.write('\n')
 
