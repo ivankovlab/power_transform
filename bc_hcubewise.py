@@ -156,6 +156,7 @@ with open(args.hypercubes) as fin, open(args.output, 'w') as fout:
         for p in Pobs:
             Pobs_linear.append((popt[0] * sp.stats.gmean(Padd + popt[1]) ** (popt[0] - 1) * (p - popt[2]) + 1) ** (1 / popt[0]) - popt[1])
 
+        # Write the output to file
         for j in range(len(genotypes)):
-            fout.write(genotypes[j] + ',' + str(Pobs_linear[j]) + '\t') # Output
+            fout.write(genotypes[j] + ',' + str(Pobs_linear[j]) + '\t')
         fout.write('\n')
