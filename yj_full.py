@@ -15,7 +15,7 @@ def model(P_add: np.ndarray[float], lam: float, A: float, B: float):
 
     Parameters
     ----------
-    Padd : np.array[float]
+    Padd : np.ndarray[float]
         ADDITIVE PHENOTYPES.
     lmbda : float
         LMBDA PARAMETER.
@@ -26,7 +26,7 @@ def model(P_add: np.ndarray[float], lam: float, A: float, B: float):
 
     Returns
     -------
-    np.array[float]
+    np.ndarray[float]
         OBSERVED PHENOTYPES.
 
     '''
