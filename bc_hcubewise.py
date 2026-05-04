@@ -8,13 +8,13 @@ import scipy as sp
 from sklearn.preprocessing import PowerTransformer
 from collections import defaultdict
 
-def model(Padd: np.array[float], lmbda: float, A: float, B: float):  # Define the Box-Cox based transform
+def model(Padd: np.ndarray[float], lmbda: float, A: float, B: float):  # Define the Box-Cox based transform
     '''
     Define the Box-Cox based transform
 
     Parameters
     ----------
-    Padd : np.array[float]
+    Padd : np.ndarray[float]
         ADDITIVE PHENOTYPES.
     lmbda : float
         LMBDA PARAMETER.
@@ -25,7 +25,7 @@ def model(Padd: np.array[float], lmbda: float, A: float, B: float):  # Define th
 
     Returns
     -------
-    np.array[float]
+    np.ndarray[float]
         OBSERVED PHENOTYPES.
 
     '''
