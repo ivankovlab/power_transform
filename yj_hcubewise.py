@@ -8,13 +8,13 @@ import scipy as sp
 from sklearn.preprocessing import PowerTransformer
 from collections import defaultdict
 
-def model(P_add, lam, A, B):
+def model(P_add: np.ndarray[float], lam: float, A: float, B: floa):
     '''
     Define the Yeo-Johnson based transform
 
     Parameters
     ----------
-    Padd : np.array[float]
+    Padd : np.ndarray[float]
         ADDITIVE PHENOTYPES.
     lmbda : float
         LMBDA PARAMETER.
@@ -25,7 +25,7 @@ def model(P_add, lam, A, B):
 
     Returns
     -------
-    np.array[float]
+    np.ndarray[float]
         OBSERVED PHENOTYPES.
 
     '''
@@ -74,13 +74,13 @@ def model(P_add, lam, A, B):
     
     return P_obs
 
-def model_inverse(P_obs: np.array[float], lmbda: float, A: float, B: float, GM: float):
+def model_inverse(P_obs: np.ndarray[float], lmbda: float, A: float, B: float, GM: float):
     '''
     Define the inverse Yeo-Johnson based transform
     
     Parameters
     ----------
-    P_obs : np.array[float]
+    P_obs : np.ndarray[float]
         OBSERVED PHENOTYPES.
     lmbda : float
         LMBDA PARAMETER.
@@ -93,7 +93,7 @@ def model_inverse(P_obs: np.array[float], lmbda: float, A: float, B: float, GM: 
 
     Returns
     -------
-    np.array[float]
+    np.ndarray[float]
         LINEARIZED PHENOTYPES.
 
     '''
