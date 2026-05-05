@@ -141,7 +141,7 @@ with open(args.hypercubes) as fin, open(args.output, 'w') as fout:
         except ValueError:
             try:
                  # If it is not possible, we fit with no restrictions other than mathematical
-                popt, pcov = sp.optimize.curve_fit(f=model, xdata=Padd, ydata=Pobs, sigma=0.01, p0=[lambdas[0],0,0],
+                popt, pcov = sp.optimize.curve_fit(f=model, xdata=Padd, ydata=Pobs, sigma=0.01, p0=[lambdas[0],-min(Padd), min(Pobs)],
                     bounds=([-np.inf, -min(Padd), -np.inf], [np.inf, np.inf, min(Pobs)]), max_nfev=1e6)
             except ValueError:
                 # Sometimes (very rarely) the hypercube can not be linearized using this method.
