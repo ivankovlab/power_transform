@@ -208,12 +208,12 @@ lambdas = pt.lambdas_
 
 try:
     # If the initial lambda guess is in [0, 2] interval, we try to avoid very large or very little lambda values
-    popt, pcov = sp.optimize.curve_fit(f=model, xdata=Padd, ydata=Pobs, sigma=0.01, p0=[lambdas[0],-min(Padd)+5*max(Padd),0],
+    popt, pcov = sp.optimize.curve_fit(f=model, xdata=Padd, ydata=Pobs, sigma=0.01, p0=[lambdas[0],-min(Padd),0],
         bounds=([0, -min(Padd), -np.inf], [2, np.inf, np.inf]), max_nfev=1e6)   
 except ValueError:
     try:
         # If it is not possible, we fit with no restrictions other than mathematical
-        popt, pcov = sp.optimize.curve_fit(f=model, xdata=Padd, ydata=Pobs, sigma=0.01, p0=[lambdas[0],-min(Padd)+5*max(Padd),0],
+        popt, pcov = sp.optimize.curve_fit(f=model, xdata=Padd, ydata=Pobs, sigma=0.01, p0=[lambdas[0],-min(Padd),0],
             bounds=([-np.inf, -min(Padd), -np.inf], [np.inf, np.inf, np.inf]), max_nfev=1e6)  
     except ValueError:
         # Sometimes (very rarely) the landscape can not be linearized using this method
