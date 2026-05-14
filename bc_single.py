@@ -9,13 +9,13 @@ import matplotlib.pyplot as plt
 from sklearn.preprocessing import PowerTransformer
 from collections import defaultdict
 
-def model(Padd: np.ndarray[float], lmbda: float, A: float, B: float):
+def model(Padd: np.ndarray, lmbda: float, A: float, B: float):
     '''
     Define the Box-Cox based transform
 
     Parameters
     ----------
-    Padd : np.ndarray[float]
+    Padd : np.ndarray
         ADDITIVE PHENOTYPES.
     lmbda : float
         LMBDA PARAMETER.
@@ -115,15 +115,17 @@ Padd = np.array(calculate_additive_phenotypes(genotypes, Pobs))
 pt = PowerTransformer()
 pt.fit(Padd.reshape(-1, 1))
 lambdas = pt.lambdas_
-print(lambdas)
 
+lambdas[0] = 4.0
+
+print(lambdas)
 try:
      # If the initial lambda guess is in [0, 2] interval, we try to avoid very large or very little lambda values
-    popt, pcov = sp.optimize.curve_fit(f=model, xdata=Padd, ydata=Pobs, sigma=0.01, p0=[lambdas[0],0,0],
+    popt, pcov = sp.optimize.curve_fit(f=model, xdata=Padd, ydata=Pobs, sigma=np.full(len(Pobs),0.01), p0=[lambdas[0],0,0],
         bounds=([0, -min(Padd), -np.inf], [2, np.inf, min(Pobs)]), max_nfev=1e6)
 except ValueError:
     # If it is not possible, we fit with no restrictions other than mathematical
-    popt, pcov = sp.optimize.curve_fit(f=model, xdata=Padd, ydata=Pobs, sigma=0.01, p0=[lambdas[0],-min(Padd), min(Pobs)],
+    popt, pcov = sp.optimize.curve_fit(f=model, xdata=Padd, ydata=Pobs, sigma=np.full(len(Pobs),0.01), p0=[lambdas[0],-min(Padd), min(Pobs)],
         bounds=([-np.inf, -min(Padd), -np.inf], [np.inf, np.inf, min(Pobs)]), max_nfev=1e6)
 print(popt)
 print(pcov)
@@ -143,6 +145,10 @@ x = np.linspace(min(Padd), max(Padd), 1000)
 y = np.zeros(1000)
 
 y = model(x, popt[0], popt[1], popt[2])
+
+print(Padd)
+
+print(model(Padd, popt[0], popt[1], popt[2]))
 
 fig, ax = plt.subplots()
 ax.set_xlabel('Additive / Linearized phenotype')
