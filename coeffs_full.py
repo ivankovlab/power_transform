@@ -1,59 +1,74 @@
-'''
-This script calculates the epistatic coefficients in an arbitrary landscape.
-If your landscape is combinatorially complete, consider choosing coeffs_single.py,
-which is designed for that particular case.
-'''
-
 import numpy as np
-import scipy as sp
 import argparse
-import sys
-
-np.printoptions(threshold=sys.maxsize, linewidth=np.inf)
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-c', '--hypercubes')
 parser.add_argument('-l', '--landscape')
-parser.add_argument('-o', '--order')
+parser.add_argument('-o', '--order', type=int)
 parser.add_argument('-f', '--output')
 args = parser.parse_args()
 
+# ---------------- FAST HADAMARD ----------------
+
+def fast_hadamard_transform(x):
+    n = x.shape[0]
+    h = 1
+    while h < n:
+        for i in range(0, n, h * 2):
+            for j in range(i, i + h):
+                a = x[j]
+                b = x[j + h]
+                x[j] = a + b
+                x[j + h] = a - b
+        h *= 2
+    return x
+
+# ---------------- READ LANDSCAPE ----------------
 land = dict()
-hcubes = list()
-
-# Parse standard HypercubeME-2 output
-with open(args.hypercubes) as f:
-    for line in f:
-        hcubes.append(list())
-        hcubes[-1].append(line.split('\t')[1].strip())
-        muts = line.split('\t')[0].split(':')
-        for mut in muts:
-            temp = list()
-            for seq in hcubes[-1]:
-                temp.append(seq[:int(mut[1:-1])]+mut[0]+seq[int(mut[1:-1])+1:])
-            hcubes[-1].extend(temp)
-
-# Parse fitness landscape (genotypes in sequence format)
 with open(args.landscape) as f:
     for line in f:
         spl = line.split('\t')
-        land[spl[0]] = spl[1]
+        land[spl[0]] = float(spl[1])
 
-order = int(args.order)
-H = sp.linalg.hadamard(2 ** order)  # as in Poelwijk (2016)
+# ---------------- PREPARE ----------------
+order = args.order
+n = 2 ** order
 
+# диагональ V
 diag = np.array([1.0])
 for _ in range(order):
-    diag = np.concatenate([0.5 * diag, -1.0 * diag])
-V = np.diag(diag)  # as in Poelwijk (2016)
-VH = np.matmul(V, H)
+    diag = np.concatenate([diag, -diag])
+diag *= 2.0 ** (-order)
 
-P = np.zeros(2 ** order)
-i = 0
+# один буфер на всё время
+P = np.zeros(n, dtype=np.float64)
 
-with open(args.output, 'w') as f:
-    for hcube in hcubes:
-        for i, genotype in enumerate(hcube):
+# ---------------- STREAM PROCESSING ----------------
+with open(args.hypercubes) as fin, open(args.output, 'w') as fout:
+    for line in fin:
+        # --- строим один гиперкуб ---
+        cube = []
+        base = line.split('\t')[1].strip()
+        cube.append(base)
+
+        muts = line.split('\t')[0].split(':')
+
+        for mut in muts:
+            pos = int(mut[1:-1])
+            new_seqs = []
+            for seq in cube:
+                new_seq = seq[:pos] + mut[0] + seq[pos+1:]
+                new_seqs.append(new_seq)
+            cube.extend(new_seqs)
+
+        # --- заполняем P ---
+        for i, genotype in enumerate(cube):
             P[i] = land[genotype]
-        K = np.matmul(VH, P)
-        print(K, file=f)
+
+        # --- FWHT ---
+        K = fast_hadamard_transform(P.copy())
+
+        # --- применяем V ---
+        K *= diag
+
+        print(K, file=fout)
