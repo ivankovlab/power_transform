@@ -2,38 +2,78 @@
 This is the Box-Cox linearization script for full-landscape computation
 '''
 
-import argparse
-import sys
 import numpy as np
 import scipy as sp
-from sklearn.preprocessing import PowerTransformer
+from scipy.optimize import least_squares
+import argparse
 from collections import defaultdict
 
-def model(Padd: np.ndarray[float], lmbda: float, A: float, B: float):
-    '''
-    Define the Box-Cox based transform
+def model(Padd, lmbda, A, B):
+    """
+    Модель зависимости Pobs от Padd.
+    """
+    x = Padd + A
 
-    Parameters
-    ----------
-    Padd : np.ndarray[float]
-        ADDITIVE PHENOTYPES.
-    lmbda : float
-        LMBDA PARAMETER.
-    A : float
-        A PARAMETER.
-    B : float
-        B PARAMETER.
+    # защита от log/степени отрицательных чисел
+    if np.any(x <= 0):
+        return np.full_like(Padd, np.nan)
 
-    Returns
-    -------
-    np.ndarray[float]
-        OBSERVED PHENOTYPES.
+    gmean = sp.stats.gmean(x)
 
-    '''
-    if lmbda !=0:
-        return ((Padd + A) ** lmbda - 1) / (lmbda * sp.stats.gmean(Padd + A) ** (lmbda - 1)) + B
-    else:
-        return sp.stats.gmean(Padd + A) * np.log(Padd + A) + B
+    # случай lambda ~= 0
+    if np.abs(lmbda) < 1e-8:
+        return gmean * np.log(x) + B
+
+    return ((x ** lmbda - 1) /
+            (lmbda * gmean ** (lmbda - 1))) + B
+
+
+def residuals(params, Padd, Pobs):
+    """
+    Вектор остатков для оптимизации.
+    """
+    lmbda, A, B = params
+
+    pred = model(Padd, lmbda, A, B)
+
+    # штраф за невалидные значения
+    if np.any(np.isnan(pred)) or np.any(np.isinf(pred)):
+        return np.ones_like(Pobs) * 1e10
+
+    return pred - Pobs
+
+
+def fit_model(Padd, Pobs,
+              lambda0=1.0,
+              A0=0.1,
+              B0=0.0):
+    """
+    Подбор оптимальных lambda, A, B.
+    """
+
+    Padd = np.asarray(Padd, dtype=float)
+    Pobs = np.asarray(Pobs, dtype=float)
+
+    # начальные параметры
+    x0 = np.array([lambda0, A0, B0])
+
+    # ограничение:
+    # Padd + A должно быть > 0
+    Amin = -np.min(Padd) + 1e-9
+
+    bounds_lower = [-10, Amin, -np.inf]
+    bounds_upper = [10, np.inf, np.inf]
+
+    result = least_squares(
+        residuals,
+        x0=x0,
+        bounds=(bounds_lower, bounds_upper),
+        args=(Padd, Pobs)
+    )
+
+    lmbda_opt, A_opt, B_opt = result.x
+
+    return lmbda_opt, A_opt, B_opt
 
 def calculate_additive_phenotypes(genotypes: list[str], phenotypes: list[float]):
     '''
@@ -80,7 +120,6 @@ def calculate_additive_phenotypes(genotypes: list[str], phenotypes: list[float])
     for key, lst in effects_lists.items():
         if lst:
             effects[key] = sum(lst) / len(lst)
-    print(effects)
     additive_phenotypes = []
     for g in genotypes:
         add = wt_phen
@@ -102,54 +141,35 @@ args = parser.parse_args()
 
 genotypes = list()
 Pobs = list()
+land = dict()
 
-# Parse the landscape file (genotypes in sequence format)
-with open(args.landscape) as f:
+with open(args.landscape) as f:     # Parse the landscape file (genotypes in sequence format)
     for line in f:
         spl = line.split()
         genotypes.append(spl[0])
         Pobs.append(float(spl[1]))
-
-# Calculate additive phenotypes
+        
 Padd = np.array(calculate_additive_phenotypes(genotypes, Pobs))
 
-# Initial guess for lambda parameter
-pt = PowerTransformer()
-pt.fit(Padd.reshape(-1, 1))
-lambdas = pt.lambdas_
-print(lambdas)
-
-try:
-    # If the initial lambda guess is in [0, 2] interval, we try to avoid very large or very little lambda values
-    popt, pcov = sp.optimize.curve_fit(f=model, xdata=Padd, ydata=Pobs, sigma=0.01, p0=[lambdas[0],0,0],
-        bounds=([0, -min(Padd), -np.inf], [2, np.inf, min(Pobs)]), max_nfev=1e6)
-except ValueError:
-    try:
-        # If it is not possible, we fit with no restrictions other than mathematical
-        popt, pcov = sp.optimize.curve_fit(f=model, xdata=Padd, ydata=Pobs, sigma=0.01, p0=[lambdas[0],-min(Padd), min(Pobs)],
-            bounds=([-np.inf, -min(Padd), -np.inf], [np.inf, np.inf, min(Pobs)]), max_nfev=1e6))
-    except ValueError:
-        # Sometimes (very rarely) the landscape can not be linearized using this method
-        print('FAILED TO LINEARIZE THE LANDSCAPE\n')
-        sys.exit(1)
-        
-Pobs_linear = list()
+# Fit the model
+lmbda_opt, A_opt, B_opt = fit_model(Padd, Pobs, lambda0=1.0, A0=-np.min(Padd)+1, B0=0.0)
+print(lmbda_opt, A_opt, B_opt)
 
 # Apply reverse transform to observed phenotypes to get linearized values
+Pobs_linear = list()
 for p in Pobs:
-    Pobs_linear.append((popt[0] * sp.stats.gmean(Padd + popt[1]) ** (popt[0] - 1) * (p - popt[2]) + 1) ** (1 / popt[0]) - popt[1])
+    Pobs_linear.append((lmbda_opt * sp.stats.gmean(Padd + A_opt) ** (lmbda_opt - 1) * (p - B_opt) + 1) ** (1 / lmbda_opt) - A_opt)
 
 # Write the output to file
 with open(args.output, 'w') as fout:
     for j in range(len(genotypes)):
         fout.write(genotypes[j] + '\t' + str(Pobs_linear[j]) + '\n')
 
-# Make the model file for plotting the power transform function
 x = np.linspace(min(Padd), max(Padd), 1000)
 y = np.zeros(1000)
-y = model(x, popt[0], popt[1], popt[2])
+y = model(x, lmbda_opt, A_opt, B_opt)
 
-with open(args.model, 'w') as fmod:
+with open(args.model, 'w') as fmod: # Make the model file for plotting
     print('x\ty', file=fmod)
     for xi, yi in zip(x, y):
         print(f'{xi},{yi}')
