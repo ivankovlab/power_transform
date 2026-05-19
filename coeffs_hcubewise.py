@@ -1,39 +1,52 @@
-'''
-This script is for calculating epistasis coeffients.
-Use it only in one particular case: after you have used either bc_hcubewise.py or yj_hcubewise.py.
-It is designed for taking the output of these scripts as input.
-'''
-
 import numpy as np
-import scipy as sp
 import argparse
 import sys
 
-np.printoptions(threshold=sys.maxsize, linewidth=np.inf)
+np.set_printoptions(threshold=sys.maxsize, linewidth=np.inf)
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-l', '--landscape')
-parser.add_argument('-o', '--order')
+parser.add_argument('-o', '--order', type=int)
 parser.add_argument('-f', '--output')
 args = parser.parse_args()
 
-land = dict()
-hcubes = list()
+# ---------------- FAST HADAMARD ----------------
+def fast_hadamard_transform(x):
+    n = x.shape[0]
+    h = 1
+    while h < n:
+        for i in range(0, n, h * 2):
+            for j in range(i, i + h):
+                a = x[j]
+                b = x[j + h]
+                x[j] = a + b
+                x[j + h] = a - b
+        h *= 2
+    return x
 
-order = int(args.order)
-H = sp.linalg.hadamard(2 ** order) # as in Poelwijk (2016)
+# ---------------- PREPARE ----------------
+order = args.order
+n = 2 ** order
 
+# diagonal V
 diag = np.array([1.0])
 for _ in range(order):
-    diag = np.concatenate([0.5 * diag, -1.0 * diag])
-V = np.diag(diag) # as in Poelwijk (2016)
-VH = np.matmul(V, H)
+    diag = np.concatenate([diag, -diag])
+diag *= 2.0 ** (-order)
 
+# ---------------- MAIN ----------------
 with open(args.landscape) as fin, open(args.output, 'w') as fout:
     for line in fin:
-        if line != 'FAILED TO LINEARIZE THIS HYPERCUBE\n':
-            P = np.array([float(part.split(',')[1].strip()) for part in line.strip().split()]) # Phenotypes in one hypercube
-            K = np.matmul(VH, P)
-            print(K, file=fout)
-        else:
-            fout.write(line) # for consistency
+        # parse a hypercube
+        P = np.array(
+            [float(part.split(',')[1].strip()) for part in line.strip().split()],
+            dtype=np.float64
+        )
+
+        # FWHT
+        K = fast_hadamard_transform(P.copy())
+
+        # apply V
+        K *= diag
+
+        print(K, file=fout)
