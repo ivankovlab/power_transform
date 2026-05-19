@@ -34,19 +34,19 @@ with open(args.landscape) as f:
 order = args.order
 n = 2 ** order
 
-# диагональ V
+# diagonal V
 diag = np.array([1.0])
 for _ in range(order):
     diag = np.concatenate([diag, -diag])
 diag *= 2.0 ** (-order)
 
-# один буфер на всё время
+# one buffer for all the computations
 P = np.zeros(n, dtype=np.float64)
 
 # ---------------- STREAM PROCESSING ----------------
 with open(args.hypercubes) as fin, open(args.output, 'w') as fout:
     for line in fin:
-        # --- строим один гиперкуб ---
+        # --- build one hypercube ---
         cube = []
         base = line.split('\t')[1].strip()
         cube.append(base)
@@ -61,14 +61,15 @@ with open(args.hypercubes) as fin, open(args.output, 'w') as fout:
                 new_seqs.append(new_seq)
             cube.extend(new_seqs)
 
-        # --- заполняем P ---
+        # --- fill in P ---
         for i, genotype in enumerate(cube):
             P[i] = land[genotype]
 
         # --- FWHT ---
         K = fast_hadamard_transform(P.copy())
 
-        # --- применяем V ---
+        # --- apply V ---
         K *= diag
 
         print(K, file=fout)
+
